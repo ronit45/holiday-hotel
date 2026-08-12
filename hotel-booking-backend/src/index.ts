@@ -1,4 +1,5 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
+import "express-async-errors";
 import cors from "cors";
 import "dotenv/config";
 import mongoose from "mongoose";
@@ -250,6 +251,27 @@ app.use(
   })
 );
 
+// Global Error Handler Middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error("=========================================");
+  console.error(`🚨 [ERROR] ${req.method} ${req.url}`);
+  console.error(`   Message: ${err.message}`);
+  console.error(`   Stack: ${err.stack}`);
+  if (Object.keys(req.body || {}).length > 0) {
+    console.error(`   Body:`, req.body);
+  }
+  console.error("=========================================");
+
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  res.status(500).json({ 
+    message: "Something went wrong on the server",
+    error: process.env.NODE_ENV === "development" ? err.message : undefined
+  });
+});
+
 // Default 5001: macOS AirPlay (Control Center) often binds 5000. Override via PORT in .env.
 const PORT = process.env.PORT || 5001;
 
@@ -306,3 +328,5 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
   gracefulShutdown("UNHANDLED_REJECTION");
 });
+
+

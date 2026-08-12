@@ -33,7 +33,7 @@ const Booking = () => {
     }
   }, [search.checkIn, search.checkOut]);
 
-  const { data: paymentIntentData, isLoading: isLoadingPayment } = useQuery(
+  const { data: paymentIntentData, isLoading: isLoadingPayment, isError: isPaymentError } = useQuery(
     "createPaymentIntent",
     () =>
       apiClient.createPaymentIntent(
@@ -163,7 +163,24 @@ const Booking = () => {
 
         {/* Booking Form */}
         <div className="space-y-6">
-          {isLoadingPayment ? (
+          {numberOfNights === 0 ? (
+            <Card className="shadow-xl border-0 bg-white">
+              <CardContent className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <Calendar className="h-8 w-8 text-blue-600 mx-auto mb-3" />
+                  <p className="text-gray-700">Please select check-in and check-out dates to proceed with booking.</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : isPaymentError ? (
+            <Card className="shadow-xl border-0 bg-white">
+              <CardContent className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <p className="text-red-500 font-medium">Error loading payment details. Please try again.</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : isLoadingPayment ? (
             <Card className="shadow-xl border-0 bg-white">
               <CardContent className="flex items-center justify-center py-12">
                 <div className="flex items-center gap-3">

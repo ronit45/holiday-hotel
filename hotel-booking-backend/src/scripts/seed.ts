@@ -15,12 +15,17 @@ import Hotel from "../models/hotel";
 import Booking from "../models/booking";
 import Review from "../models/review";
 import Analytics from "../models/analytics";
+import fs from "fs";
+import path from "path";
+import { v2 as cloudinary } from "cloudinary";
 
-const IMG = [
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
-  "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800",
-  "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800",
-];
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+let IMG: string[] = [];
 
 const daysFromNow = (n: number) => {
   const d = new Date();
@@ -48,6 +53,18 @@ async function seed() {
       : {}),
   });
   console.log("Connected. Wiping demo collections…");
+
+  console.log("Uploading 14 images to Cloudinary...");
+  const imagesDir = 'c:\\Users\\BIT\\Desktop\\ii\\c_tutorials\\aiml\\holiday-hotel\\data\\hotel_images';
+  const files = fs.readdirSync(imagesDir).filter(f => f.match(/\.(jpg|jpeg|png)$/i));
+  
+  const uploadPromises = files.map(file => {
+    const filePath = path.join(imagesDir, file);
+    return cloudinary.uploader.upload(filePath, {
+      folder: "hotel_booking_seed"
+    }).then(res => res.secure_url);
+  });
+  IMG = await Promise.all(uploadPromises);
 
   await Promise.all([
     Review.deleteMany({}),
@@ -211,7 +228,7 @@ async function seed() {
     facilities: ["Free WiFi", "Family Rooms", "Non-Smoking Rooms"],
     pricePerNight: 95,
     starRating: 3,
-    imageUrls: [IMG[2], IMG[0]],
+    imageUrls: [IMG[2], IMG[3]],
     lastUpdated: new Date(),
     location: {
       latitude: 55.9533,
@@ -268,7 +285,7 @@ async function seed() {
     facilities: ["Free WiFi", "Parking", "Airport Shuttle", "Kitchenette"],
     pricePerNight: 120,
     starRating: 4,
-    imageUrls: [IMG[1], IMG[2]],
+    imageUrls: [IMG[4], IMG[5]],
     lastUpdated: new Date(),
     location: {
       latitude: 53.4084,
@@ -312,6 +329,92 @@ async function seed() {
     isActive: false,
     isFeatured: false,
   }).save();
+
+  const hotelD = await new Hotel({
+    userId: admin.id,
+    name: "Alpine Retreat",
+    city: "Inverness",
+    country: "United Kingdom",
+    description: "Mountain views and fresh air.",
+    type: ["Cabin", "Family"],
+    adultCount: 2,
+    childCount: 2,
+    facilities: ["Free WiFi", "Parking"],
+    pricePerNight: 150,
+    starRating: 4,
+    imageUrls: [IMG[6] || IMG[0], IMG[7] || IMG[1]],
+    lastUpdated: new Date(),
+    location: { latitude: 57.4778, longitude: -4.2247, address: { street: "12 Highland Way", city: "Inverness", state: "Scotland", country: "United Kingdom", zipCode: "IV1 1AA" } },
+    contact: { phone: "+44 1463 000000", email: "info@alpineretreat.example", website: "https://alpineretreat.example" },
+    policies: { checkInTime: "14:00", checkOutTime: "11:00", cancellationPolicy: "Free cancel", petPolicy: "Pets welcome", smokingPolicy: "Non-smoking" },
+    amenities: { parking: true, wifi: true, pool: false, gym: false, spa: false, restaurant: true, bar: true, airportShuttle: false, businessCenter: false },
+    totalBookings: 0, totalRevenue: 0, averageRating: 0, reviewCount: 0, occupancyRate: 50, isActive: true, isFeatured: false,
+  }).save();
+
+  const hotelE = await new Hotel({
+    userId: owner.id,
+    name: "City Center Loft",
+    city: "Manchester",
+    country: "United Kingdom",
+    description: "Modern loft in the heart of the city.",
+    type: ["Apartment", "Boutique"],
+    adultCount: 2,
+    childCount: 0,
+    facilities: ["Free WiFi", "Gym"],
+    pricePerNight: 130,
+    starRating: 4,
+    imageUrls: [IMG[8] || IMG[0], IMG[9] || IMG[1]],
+    lastUpdated: new Date(),
+    location: { latitude: 53.4808, longitude: -2.2426, address: { street: "42 Deansgate", city: "Manchester", state: "England", country: "United Kingdom", zipCode: "M3 2AW" } },
+    contact: { phone: "+44 161 0000000", email: "info@cityloft.example", website: "https://cityloft.example" },
+    policies: { checkInTime: "15:00", checkOutTime: "11:00", cancellationPolicy: "Strict", petPolicy: "No pets", smokingPolicy: "Non-smoking" },
+    amenities: { parking: false, wifi: true, pool: false, gym: true, spa: false, restaurant: false, bar: false, airportShuttle: false, businessCenter: true },
+    totalBookings: 0, totalRevenue: 0, averageRating: 0, reviewCount: 0, occupancyRate: 80, isActive: true, isFeatured: true,
+  }).save();
+
+  const hotelF = await new Hotel({
+    userId: admin.id,
+    name: "Lakeside Resort",
+    city: "Windermere",
+    country: "United Kingdom",
+    description: "Peaceful lakeside relaxation.",
+    type: ["Resort", "Luxury"],
+    adultCount: 2,
+    childCount: 1,
+    facilities: ["Free WiFi", "Pool", "Spa", "Restaurant"],
+    pricePerNight: 250,
+    starRating: 5,
+    imageUrls: [IMG[10] || IMG[0], IMG[11] || IMG[1]],
+    lastUpdated: new Date(),
+    location: { latitude: 54.3795, longitude: -2.9062, address: { street: "1 Lake Road", city: "Windermere", state: "England", country: "United Kingdom", zipCode: "LA23 1EQ" } },
+    contact: { phone: "+44 15394 00000", email: "info@lakesideresort.example", website: "https://lakesideresort.example" },
+    policies: { checkInTime: "15:00", checkOutTime: "11:00", cancellationPolicy: "Flexible", petPolicy: "No pets", smokingPolicy: "Non-smoking" },
+    amenities: { parking: true, wifi: true, pool: true, gym: true, spa: true, restaurant: true, bar: true, airportShuttle: false, businessCenter: false },
+    totalBookings: 0, totalRevenue: 0, averageRating: 0, reviewCount: 0, occupancyRate: 60, isActive: true, isFeatured: true,
+  }).save();
+
+  const hotelG = await new Hotel({
+    userId: owner.id,
+    name: "The Grand Historic",
+    city: "Bath",
+    country: "United Kingdom",
+    description: "Experience the historic grandeur of Bath.",
+    type: ["Boutique", "Luxury"],
+    adultCount: 2,
+    childCount: 0,
+    facilities: ["Free WiFi", "Restaurant", "Bar"],
+    pricePerNight: 190,
+    starRating: 5,
+    imageUrls: [IMG[12] || IMG[0], IMG[13] || IMG[1]],
+    lastUpdated: new Date(),
+    location: { latitude: 51.3758, longitude: -2.3599, address: { street: "10 Royal Crescent", city: "Bath", state: "England", country: "United Kingdom", zipCode: "BA1 2LR" } },
+    contact: { phone: "+44 1225 000000", email: "info@grandhistoric.example", website: "https://grandhistoric.example" },
+    policies: { checkInTime: "14:00", checkOutTime: "12:00", cancellationPolicy: "Moderate", petPolicy: "No pets", smokingPolicy: "Non-smoking" },
+    amenities: { parking: false, wifi: true, pool: false, gym: false, spa: false, restaurant: true, bar: true, airportShuttle: false, businessCenter: true },
+    totalBookings: 0, totalRevenue: 0, averageRating: 0, reviewCount: 0, occupancyRate: 90, isActive: true, isFeatured: true,
+  }).save();
+
+  const allHotels = [hotelA, hotelB, hotelC, hotelD, hotelE, hotelF, hotelG];
 
   console.log("Seeding bookings (status × paymentStatus matrix + all fields)…");
   const bookingSpecs: Array<{
@@ -524,7 +627,7 @@ async function seed() {
       b.status !== "cancelled" &&
       b.status !== "refunded"
   );
-  for (const hotel of [hotelA, hotelB, hotelC]) {
+  for (const hotel of allHotels) {
     const mine = paidActive.filter((b) => b.hotelId === hotel.id);
     hotel.totalBookings = mine.length;
     hotel.totalRevenue = mine.reduce((s, b) => s + (b.totalCost || 0), 0);
@@ -570,7 +673,7 @@ async function seed() {
     }).save();
   }
 
-  for (const hotel of [hotelA, hotelB]) {
+  for (const hotel of allHotels) {
     const reviews = await Review.find({ hotelId: hotel.id });
     if (reviews.length) {
       hotel.reviewCount = reviews.length;
@@ -589,7 +692,7 @@ async function seed() {
       totalBookings: savedBookings.length,
       totalRevenue: paidActive.reduce((s, b) => s + (b.totalCost || 0), 0),
       totalUsers: 3,
-      totalHotels: 3,
+      totalHotels: 7,
       averageBookingValue: 250,
       conversionRate: 62.5,
       cancellationRate: 25,
