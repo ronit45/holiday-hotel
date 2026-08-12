@@ -15,7 +15,7 @@ Please **do not** open a public GitHub issue for security vulnerabilities.
 
 Report privately by email:
 
-- **Email:** [contact@arnobmahmud.com](mailto:contact@arnobmahmud.com)
+- **Email:** [security@example.com](mailto:security@example.com)
 - **Subject line suggestion:** `[SECURITY] Hotel Booking MERN — short description`
 
 Coordinated disclosure partners (e.g. VulDB CNA) may also contact this address. Health probes: public `GET /api/health` is liveness-only; `GET /api/health/detailed` requires JWT and does not return host/PID/Node version (REQ-0034 / CAPA-0001).
