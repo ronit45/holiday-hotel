@@ -21,13 +21,13 @@ jobs:
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '24.x'
+          node-version: '22.x'
 
-      - name: npm install and build
+      - name: npm install, build, and test
         run: |
-          cd hotel-booking-backend
-          npm ci
-          npm run build
+          npm install
+          npm run build --if-present
+          npm run test --if-present
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -51,9 +51,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_3DF016090EDA4FE5A7EE4EAA34435B99 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_00BC8B6556544F09B5B2810990B7529C }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E1692F3F1BF04DFF8D024834BF1BEB7E }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_97AFDB078C1843C29D6C8142498C466D }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6940ECAFF8054ED6BBFA642895275CED }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_DE876AFAF5124F8D99FB4DD6DCC8B6B1 }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
