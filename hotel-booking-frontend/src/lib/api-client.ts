@@ -11,7 +11,7 @@ const getBaseURL = () => {
     window.location.hostname === "mern-booking-hotel.netlify.app" ||
     window.location.hostname.includes("vercel.app")
   ) {
-    return "https://hotel-booking-backend.arnobmahmud.com";
+    return "https://holiday-hotel-free-api-d2f2hjb7ceh0hkgx.centralindia-01.azurewebsites.net";
   }
 
   // Must match hotel-booking-backend PORT (default 5001) when VITE_API_BASE_URL is unset.
@@ -20,7 +20,7 @@ const getBaseURL = () => {
   }
 
   // Default to production (VPS backend)
-  return "https://hotel-booking-backend.arnobmahmud.com";
+  return "https://holiday-hotel-free-api-d2f2hjb7ceh0hkgx.centralindia-01.azurewebsites.net";
 };
 
 export const getApiBaseUrl = getBaseURL;
