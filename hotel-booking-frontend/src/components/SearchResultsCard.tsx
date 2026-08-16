@@ -64,15 +64,6 @@ const SearchResultsCard = ({ hotel }: Props) => {
             )}
           </div>
 
-          {/* Star Rating Badge */}
-          <div className="absolute top-4 right-4">
-            <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
-              <AiFillStar className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm font-medium text-gray-700">
-                {hotel.starRating}
-              </span>
-            </div>
-          </div>
         </div>
 
         {/* Content Section */}
