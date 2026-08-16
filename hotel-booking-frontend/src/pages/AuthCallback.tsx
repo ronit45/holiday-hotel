@@ -48,7 +48,8 @@ const AuthCallback = () => {
 
       queryClient.invalidateQueries("validateToken");
       showToast(welcomeBackToast(name || undefined));
-      navigate("/");
+      // Force a full page reload so AppContext reads the newly set localStorage
+      window.location.href = "/";
     } else {
       navigate("/sign-in");
     }
