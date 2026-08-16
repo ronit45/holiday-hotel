@@ -631,58 +631,9 @@ async function seed() {
     const mine = paidActive.filter((b) => b.hotelId === hotel.id);
     hotel.totalBookings = mine.length;
     hotel.totalRevenue = mine.reduce((s, b) => s + (b.totalCost || 0), 0);
+    hotel.reviewCount = 0;
+    hotel.averageRating = 0;
     await hotel.save();
-  }
-
-  console.log("Seeding reviews (all schema fields)…");
-  const completed = savedBookings.filter((b) => b.status === "completed");
-  if (completed[0]) {
-    await new Review({
-      userId: completed[0].userId,
-      hotelId: completed[0].hotelId,
-      bookingId: completed[0].id,
-      rating: 5,
-      comment: "Wonderful stay — staff were exceptional and rooms spotless.",
-      categories: {
-        cleanliness: 5,
-        service: 5,
-        location: 5,
-        value: 4,
-        amenities: 5,
-      },
-      isVerified: true,
-      helpfulCount: 12,
-    }).save();
-  }
-  if (completed[1]) {
-    await new Review({
-      userId: completed[1].userId,
-      hotelId: completed[1].hotelId,
-      bookingId: completed[1].id,
-      rating: 4,
-      comment: "Solid value near the attractions. Breakfast could be stronger.",
-      categories: {
-        cleanliness: 4,
-        service: 4,
-        location: 5,
-        value: 4,
-        amenities: 3,
-      },
-      isVerified: false,
-      helpfulCount: 3,
-    }).save();
-  }
-
-  for (const hotel of allHotels) {
-    const reviews = await Review.find({ hotelId: hotel.id });
-    if (reviews.length) {
-      hotel.reviewCount = reviews.length;
-      hotel.averageRating =
-        Math.round(
-          (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10
-        ) / 10;
-      await hotel.save();
-    }
   }
 
   console.log("Seeding analytics snapshot (full metrics + breakdown)…");
