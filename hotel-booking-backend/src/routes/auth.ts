@@ -1,27 +1,12 @@
 import express, { Request, Response } from "express";
 import { check, validationResult } from "express-validator";
-import User from "../models/user";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import verifyToken from "../middleware/auth";
 import { clearAuthCookieOptions } from "../lib/cookie-options";
+import { authService } from "../services/auth.service";
+import { config } from "../config/env";
 
 const router = express.Router();
-
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_SECRET;
-// Local dev: Vite on 5174. OAuth success/error redirects use this origin (not a Google redirect URI).
-const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:5174").replace(
-  /\/$/,
-  ""
-);
-// Google Console "Authorized redirect URI" must match exactly: {BACKEND_URL}/api/auth/callback/google
-// Default PORT 5001 (5000 blocked on many Macs). Keep PORT, VITE_API_BASE_URL, Google redirect in sync.
-const BACKEND_URL = (
-  process.env.BACKEND_URL ||
-  `http://localhost:${process.env.PORT || 5001}`
-).replace(/\/$/, "");
 
 /**
  * @swagger
@@ -32,13 +17,13 @@ const BACKEND_URL = (
  *     tags: [Authentication]
  */
 router.get("/google", (req: Request, res: Response) => {
-  if (!GOOGLE_CLIENT_ID) {
+  if (!config.google.clientId) {
     return res.status(500).json({ message: "Google OAuth not configured" });
   }
   const state = crypto.randomBytes(32).toString("hex");
-  const redirectUri = `${BACKEND_URL}/api/auth/callback/google`;
+  const redirectUri = `${config.backendUrl}/api/auth/callback/google`;
   const scope = "openid email profile";
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}&access_type=offline&prompt=consent`;
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${config.google.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}&access_type=offline&prompt=consent`;
   res.redirect(url);
 });
 
@@ -55,91 +40,30 @@ router.get("/callback/google", async (req: Request, res: Response) => {
 
   if (error) {
     return res.redirect(
-      `${FRONTEND_URL}/sign-in?error=${encodeURIComponent(String(error))}`
-    );
-  }
-
-  if (!code || !GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    return res.redirect(
-      `${FRONTEND_URL}/sign-in?error=oauth_config`
+      `${config.frontendUrl}/sign-in?error=${encodeURIComponent(String(error))}`
     );
   }
 
   try {
-    const redirectUri = `${BACKEND_URL}/api/auth/callback/google`;
-    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        code: String(code),
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
-        redirect_uri: redirectUri,
-        grant_type: "authorization_code",
-      }),
-    });
+    const redirectUri = `${config.backendUrl}/api/auth/callback/google`;
+    const { user, token } = await authService.processGoogleCallback(String(code), redirectUri);
 
-    const tokenData = await tokenRes.json();
-    if (tokenData.error) {
-      console.error("Google token error:", tokenData);
-      return res.redirect(
-        `${FRONTEND_URL}/sign-in?error=token_exchange`
-      );
-    }
-
-    const userRes = await fetch(
-      "https://www.googleapis.com/oauth2/v2/userinfo",
-      {
-        headers: { Authorization: `Bearer ${tokenData.access_token}` },
-      }
-    );
-    const googleUser = await userRes.json();
-
-    const email = googleUser.email;
-    const name = googleUser.name || "";
-    const [firstName, ...lastParts] = name.split(" ");
-    const lastName = lastParts.join(" ") || firstName;
-    const image = googleUser.picture || undefined;
-
-    let user = await User.findOne({ email });
-    if (!user) {
-      const randomPassword = crypto.randomBytes(32).toString("hex");
-      user = new User({
-        email,
-        firstName: firstName || "User",
-        lastName: lastName || "Google",
-        password: randomPassword,
-        image,
-        emailVerified: true,
-      });
-      await user.save();
-    } else {
-      await User.findByIdAndUpdate(user._id, {
-        image,
-        emailVerified: true,
-      });
-    }
-
-    const token = jwt.sign(
-      { userId: user.id },
-      process.env.JWT_SECRET_KEY as string,
-      { expiresIn: "1d" }
-    );
-
-    const redirectUrl = new URL(`${FRONTEND_URL}/auth/callback`);
+    const redirectUrl = new URL(`${config.frontendUrl}/auth/callback`);
     redirectUrl.searchParams.set("token", token);
     redirectUrl.searchParams.set("userId", String(user._id));
     redirectUrl.searchParams.set("email", user.email);
     redirectUrl.searchParams.set("firstName", user.firstName);
     redirectUrl.searchParams.set("lastName", user.lastName);
-    if (image) redirectUrl.searchParams.set("image", image);
+    if (user.image) redirectUrl.searchParams.set("image", user.image);
 
     res.redirect(redirectUrl.toString());
-  } catch (err) {
+  } catch (err: any) {
     console.error("Google OAuth error:", err);
-    res.redirect(
-      `${FRONTEND_URL}/sign-in?error=server_error`
-    );
+    let errorCode = "server_error";
+    if (err.message === "oauth_config") errorCode = "oauth_config";
+    if (err.message === "token_exchange") errorCode = "token_exchange";
+    
+    res.redirect(`${config.frontendUrl}/sign-in?error=${errorCode}`);
   }
 });
 
@@ -201,29 +125,12 @@ router.post(
     const { email, password } = req.body;
 
     try {
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(400).json({ message: "Invalid Credentials" });
-      }
+      const { user, token } = await authService.login(email, password);
 
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ message: "Invalid Credentials" });
-      }
-
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET_KEY as string,
-        {
-          expiresIn: "1d",
-        }
-      );
-
-      // Return JWT token in response body for localStorage storage
       res.status(200).json({
         userId: user._id,
         message: "Login successful",
-        token: token, // JWT token in response body
+        token: token,
         user: {
           id: user._id,
           email: user.email,
@@ -231,7 +138,10 @@ router.post(
           lastName: user.lastName,
         },
       });
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message === "Invalid Credentials") {
+        return res.status(400).json({ message: "Invalid Credentials" });
+      }
       console.log(error);
       res.status(500).json({ message: "Something went wrong" });
     }

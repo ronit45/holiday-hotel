@@ -1,56 +1,20 @@
 import express, { Request, Response } from "express";
-import Hotel from "../models/hotel";
-import Booking from "../models/booking";
-import User from "../models/user";
-import { BookingType, HotelSearchResponse } from "../../../shared/types";
 import { param, validationResult } from "express-validator";
-import Stripe from "stripe";
 import verifyToken from "../middleware/auth";
 import requireAdmin from "../middleware/requireAdmin";
-
-const stripe = new Stripe(process.env.STRIPE_API_KEY as string);
+import { hotelService, HotelSearchQuery } from "../services/hotel.service";
+import { paymentService } from "../services/payment.service";
+import { bookingService } from "../services/booking.service";
+import { BookingType } from "../../../shared/types";
 
 const router = express.Router();
 
 router.get("/search", async (req: Request, res: Response) => {
   try {
-    const query = constructSearchQuery(req.query);
+    const pageNumber = parseInt(req.query.page ? req.query.page.toString() : "1");
+    const sortOption = req.query.sortOption as string | undefined;
 
-    let sortOptions = {};
-    switch (req.query.sortOption) {
-      case "starRating":
-        sortOptions = { starRating: -1 };
-        break;
-      case "pricePerNightAsc":
-        sortOptions = { pricePerNight: 1 };
-        break;
-      case "pricePerNightDesc":
-        sortOptions = { pricePerNight: -1 };
-        break;
-    }
-
-    const pageSize = 5;
-    const pageNumber = parseInt(
-      req.query.page ? req.query.page.toString() : "1"
-    );
-    const skip = (pageNumber - 1) * pageSize;
-
-    const hotels = await Hotel.find(query)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(pageSize);
-
-    const total = await Hotel.countDocuments(query);
-
-    const response: HotelSearchResponse = {
-      data: hotels,
-      pagination: {
-        total,
-        page: pageNumber,
-        pages: Math.ceil(total / pageSize),
-      },
-    };
-
+    const response = await hotelService.searchHotels(req.query as unknown as HotelSearchQuery, pageNumber, sortOption);
     res.json(response);
   } catch (error) {
     console.log("error", error);
@@ -60,7 +24,7 @@ router.get("/search", async (req: Request, res: Response) => {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const hotels = await Hotel.find().sort("-lastUpdated");
+    const hotels = await hotelService.getAllHotels();
     res.json(hotels);
   } catch (error) {
     console.log("error", error);
@@ -82,11 +46,7 @@ router.patch(
       return res.status(400).json({ message: "isActive boolean required" });
     }
     try {
-      const hotel = await Hotel.findByIdAndUpdate(
-        req.params.id,
-        { isActive: req.body.isActive, lastUpdated: new Date() },
-        { new: true }
-      );
+      const hotel = await hotelService.toggleHotelActive(req.params.id, req.body.isActive);
       if (!hotel) {
         return res.status(404).json({ message: "Hotel not found" });
       }
@@ -110,7 +70,7 @@ router.get(
     const id = req.params.id.toString();
 
     try {
-      const hotel = await Hotel.findById(id);
+      const hotel = await hotelService.getHotelById(id);
       res.json(hotel);
     } catch (error) {
       console.log(error);
@@ -126,33 +86,35 @@ router.post(
     const { numberOfNights } = req.body;
     const hotelId = req.params.hotelId;
 
-    const hotel = await Hotel.findById(hotelId);
-    if (!hotel) {
-      return res.status(400).json({ message: "Hotel not found" });
+    try {
+      const hotel = await hotelService.getHotelById(hotelId);
+      if (!hotel) {
+        return res.status(400).json({ message: "Hotel not found" });
+      }
+
+      const totalCost = hotel.pricePerNight * numberOfNights;
+
+      const paymentIntent = await paymentService.createPaymentIntent(
+        totalCost,
+        "gbp",
+        { hotelId, userId: req.userId }
+      );
+
+      if (!paymentIntent.client_secret) {
+        return res.status(500).json({ message: "Error creating payment intent" });
+      }
+
+      const response = {
+        paymentIntentId: paymentIntent.id,
+        clientSecret: paymentIntent.client_secret.toString(),
+        totalCost,
+      };
+
+      res.send(response);
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: "Something went wrong" });
     }
-
-    const totalCost = hotel.pricePerNight * numberOfNights;
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalCost * 100,
-      currency: "gbp",
-      metadata: {
-        hotelId,
-        userId: req.userId,
-      },
-    });
-
-    if (!paymentIntent.client_secret) {
-      return res.status(500).json({ message: "Error creating payment intent" });
-    }
-
-    const response = {
-      paymentIntentId: paymentIntent.id,
-      clientSecret: paymentIntent.client_secret.toString(),
-      totalCost,
-    };
-
-    res.send(response);
   }
 );
 
@@ -163,7 +125,7 @@ router.post(
     try {
       const paymentIntentId = req.body.paymentIntentId;
 
-      const paymentIntent = await stripe.paymentIntents.retrieve(
+      const paymentIntent = await paymentService.retrievePaymentIntent(
         paymentIntentId as string
       );
 
@@ -184,36 +146,17 @@ router.post(
         });
       }
 
-      const newBooking: BookingType = {
+      const newBookingData = {
         ...req.body,
         userId: req.userId,
         hotelId: req.params.hotelId,
-        createdAt: new Date(), // Add booking creation timestamp
-        status: "confirmed", // Set initial status
-        paymentStatus: "paid", // Set payment status since payment succeeded
-        // Always from retrieved PI — never trust client-only value for refunds
+        createdAt: new Date(),
+        status: "confirmed" as const,
+        paymentStatus: "paid" as const,
         stripePaymentIntentId: paymentIntent.id,
       };
 
-      // Create booking in separate collection
-      const booking = new Booking(newBooking);
-      await booking.save();
-
-      // Update hotel analytics
-      await Hotel.findByIdAndUpdate(req.params.hotelId, {
-        $inc: {
-          totalBookings: 1,
-          totalRevenue: newBooking.totalCost,
-        },
-      });
-
-      // Update user analytics
-      await User.findByIdAndUpdate(req.userId, {
-        $inc: {
-          totalBookings: 1,
-          totalSpent: newBooking.totalCost,
-        },
-      });
+      await bookingService.createBooking(newBookingData);
 
       res.status(200).send();
     } catch (error) {
@@ -222,62 +165,5 @@ router.post(
     }
   }
 );
-
-const constructSearchQuery = (queryParams: any) => {
-  let constructedQuery: any = {};
-
-  if (queryParams.destination && queryParams.destination.trim() !== "") {
-    const destination = queryParams.destination.trim();
-
-    constructedQuery.$or = [
-      { city: { $regex: destination, $options: "i" } },
-      { country: { $regex: destination, $options: "i" } },
-    ];
-  }
-
-  if (queryParams.adultCount) {
-    constructedQuery.adultCount = {
-      $gte: parseInt(queryParams.adultCount),
-    };
-  }
-
-  if (queryParams.childCount) {
-    constructedQuery.childCount = {
-      $gte: parseInt(queryParams.childCount),
-    };
-  }
-
-  if (queryParams.facilities) {
-    constructedQuery.facilities = {
-      $all: Array.isArray(queryParams.facilities)
-        ? queryParams.facilities
-        : [queryParams.facilities],
-    };
-  }
-
-  if (queryParams.types) {
-    constructedQuery.type = {
-      $in: Array.isArray(queryParams.types)
-        ? queryParams.types
-        : [queryParams.types],
-    };
-  }
-
-  if (queryParams.stars) {
-    const starRatings = Array.isArray(queryParams.stars)
-      ? queryParams.stars.map((star: string) => parseInt(star))
-      : parseInt(queryParams.stars);
-
-    constructedQuery.starRating = { $in: starRatings };
-  }
-
-  if (queryParams.maxPrice) {
-    constructedQuery.pricePerNight = {
-      $lte: parseInt(queryParams.maxPrice).toString(),
-    };
-  }
-
-  return constructedQuery;
-};
 
 export default router;

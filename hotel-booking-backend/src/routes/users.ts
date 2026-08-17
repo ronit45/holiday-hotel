@@ -1,10 +1,10 @@
 import express, { Request, Response } from "express";
-import User from "../models/user";
-import jwt from "jsonwebtoken";
 import { check, validationResult } from "express-validator";
 import verifyToken from "../middleware/auth";
 import requireAdmin from "../middleware/requireAdmin";
 import { authCookieOptions } from "../lib/cookie-options";
+import { userService } from "../services/user.service";
+import { authService } from "../services/auth.service";
 
 const router = express.Router();
 
@@ -12,7 +12,7 @@ router.get("/me", verifyToken, async (req: Request, res: Response) => {
   const userId = req.userId;
 
   try {
-    const user = await User.findById(userId).select("-password");
+    const user = await userService.getUserById(userId);
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
@@ -33,12 +33,7 @@ router.get(
   requireAdmin,
   async (_req: Request, res: Response) => {
     try {
-      const users = await User.find()
-        .select(
-          "email firstName lastName role isActive totalBookings totalSpent createdAt"
-        )
-        .sort({ createdAt: -1 })
-        .limit(200);
+      const users = await userService.getAllUsers();
       res.json(users);
     } catch (error) {
       console.log(error);
@@ -66,23 +61,16 @@ router.patch(
     }
 
     try {
-      if (req.params.id === req.userId && role !== "admin") {
-        return res.status(400).json({
-          message: "Cannot demote your own admin role",
-        });
-      }
-
-      const user = await User.findByIdAndUpdate(
-        req.params.id,
-        { role, updatedAt: new Date() },
-        { new: true }
-      ).select("-password");
+      const user = await userService.updateUserRole(req.params.id, role, req.userId);
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       res.json(user);
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message === "Cannot demote your own admin role") {
+        return res.status(400).json({ message: error.message });
+      }
       console.log(error);
       res.status(500).json({ message: "Unable to update role" });
     }
@@ -106,28 +94,15 @@ router.post(
     }
 
     try {
-      let user = await User.findOne({
-        email: req.body.email,
-      });
-
-      if (user) {
-        return res.status(400).json({ message: "User already exists" });
-      }
-
-      user = new User(req.body);
-      await user.save();
-
-      const token = jwt.sign(
-        { userId: user.id },
-        process.env.JWT_SECRET_KEY as string,
-        {
-          expiresIn: "1d",
-        }
-      );
+      const user = await userService.registerUser(req.body);
+      const token = authService.generateToken(user.id);
 
       res.cookie("auth_token", token, authCookieOptions());
       return res.status(200).send({ message: "User registered OK" });
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message === "User already exists") {
+        return res.status(400).json({ message: error.message });
+      }
       console.log(error);
       res.status(500).send({ message: "Something went wrong" });
     }

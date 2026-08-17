@@ -1,12 +1,10 @@
 import express, { Request, Response } from "express";
 import multer from "multer";
-import cloudinary from "cloudinary";
-import Hotel from "../models/hotel";
-import Booking from "../models/booking";
-import Review from "../models/review";
 import verifyToken from "../middleware/auth";
 import { body } from "express-validator";
 import { HotelType } from "../../../shared/types";
+import { uploadService } from "../services/upload.service";
+import { hotelService } from "../services/hotel.service";
 
 const router = express.Router();
 
@@ -17,29 +15,6 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB
   },
 });
-
-/** Classify bookings into upcoming / completed / cancelled for owner cards */
-function classifyBookingCounts(
-  bookings: Array<{ status: string; checkIn: Date; checkOut: Date }>
-) {
-  const now = new Date();
-  let upcoming = 0;
-  let completed = 0;
-  let cancelled = 0;
-  for (const b of bookings) {
-    if (b.status === "cancelled" || b.status === "refunded") {
-      cancelled += 1;
-    } else if (
-      b.status === "completed" ||
-      new Date(b.checkOut).getTime() < now.getTime()
-    ) {
-      completed += 1;
-    } else {
-      upcoming += 1;
-    }
-  }
-  return { upcoming, completed, cancelled };
-}
 
 router.post(
   "/",
@@ -65,20 +40,20 @@ router.post(
   upload.array("imageFiles", 6),
   async (req: Request, res: Response) => {
     try {
-      const imageFiles = (req as any).files as any[];
-      const newHotel: HotelType = req.body;
+      const imageFiles = (req as any).files as Express.Multer.File[];
+      const newHotelData: HotelType = req.body;
 
-      if (typeof newHotel.type === "string") {
-        newHotel.type = [newHotel.type];
+      if (typeof newHotelData.type === "string") {
+        newHotelData.type = [newHotelData.type];
       }
 
-      newHotel.contact = {
+      newHotelData.contact = {
         phone: req.body["contact.phone"] || "",
         email: req.body["contact.email"] || "",
         website: req.body["contact.website"] || "",
       };
 
-      newHotel.policies = {
+      newHotelData.policies = {
         checkInTime: req.body["policies.checkInTime"] || "",
         checkOutTime: req.body["policies.checkOutTime"] || "",
         cancellationPolicy: req.body["policies.cancellationPolicy"] || "",
@@ -86,15 +61,13 @@ router.post(
         smokingPolicy: req.body["policies.smokingPolicy"] || "",
       };
 
-      const imageUrls = await uploadImages(imageFiles);
+      const imageUrls = await uploadService.uploadImages(imageFiles);
 
-      newHotel.imageUrls = imageUrls;
-      newHotel.lastUpdated = new Date();
-      newHotel.userId = req.userId;
+      newHotelData.imageUrls = imageUrls;
+      newHotelData.lastUpdated = new Date();
+      newHotelData.userId = req.userId;
 
-      const hotel = new Hotel(newHotel);
-      await hotel.save();
-
+      const hotel = await hotelService.createHotel(newHotelData);
       res.status(201).send(hotel);
     } catch (e) {
       console.log(e);
@@ -106,63 +79,8 @@ router.post(
 // Enriched list: booking status counts + live averageRating from Review collection
 router.get("/", verifyToken, async (req: Request, res: Response) => {
   try {
-    const hotels = await Hotel.find({ userId: req.userId });
-    const hotelIds = hotels.map((h) => h._id.toString());
-
-    if (hotelIds.length === 0) {
-      return res.json([]);
-    }
-
-    const [allBookings, reviewAggs] = await Promise.all([
-      Booking.find({ hotelId: { $in: hotelIds } }).select(
-        "hotelId status checkIn checkOut"
-      ),
-      Review.aggregate([
-        { $match: { hotelId: { $in: hotelIds } } },
-        {
-          $group: {
-            _id: "$hotelId",
-            averageRating: { $avg: "$rating" },
-            reviewCount: { $sum: 1 },
-          },
-        },
-      ]),
-    ]);
-
-    const bookingsByHotel = new Map<string, typeof allBookings>();
-    for (const b of allBookings) {
-      const list = bookingsByHotel.get(b.hotelId) || [];
-      list.push(b);
-      bookingsByHotel.set(b.hotelId, list);
-    }
-
-    const reviewByHotel = new Map(
-      reviewAggs.map((r) => [
-        r._id as string,
-        {
-          averageRating: Math.round((r.averageRating as number) * 10) / 10,
-          reviewCount: r.reviewCount as number,
-        },
-      ])
-    );
-
-    const enriched = hotels.map((hotel) => {
-      const id = hotel._id.toString();
-      const counts = classifyBookingCounts(bookingsByHotel.get(id) || []);
-      const review = reviewByHotel.get(id);
-      const obj = hotel.toObject();
-      return {
-        ...obj,
-        upcomingBookings: counts.upcoming,
-        completedBookings: counts.completed,
-        cancelledBookings: counts.cancelled,
-        averageRating:
-          review?.averageRating ?? obj.averageRating ?? obj.starRating ?? 0,
-        reviewCount: review?.reviewCount ?? obj.reviewCount ?? 0,
-      };
-    });
-
-    res.json(enriched);
+    const enrichedHotels = await hotelService.getMyHotels(req.userId);
+    res.json(enrichedHotels);
   } catch (error) {
     res.status(500).json({ message: "Error fetching hotels" });
   }
@@ -171,10 +89,7 @@ router.get("/", verifyToken, async (req: Request, res: Response) => {
 router.get("/:id", verifyToken, async (req: Request, res: Response) => {
   const id = req.params.id.toString();
   try {
-    const hotel = await Hotel.findOne({
-      _id: id,
-      userId: req.userId,
-    });
+    const hotel = await hotelService.getMyHotelById(id, req.userId);
     res.json(hotel);
   } catch (error) {
     res.status(500).json({ message: "Error fetching hotels" });
@@ -194,11 +109,7 @@ router.patch(
       return res.status(400).json({ message: "isActive boolean required" });
     }
     try {
-      const hotel = await Hotel.findOneAndUpdate(
-        { _id: req.params.id, userId: req.userId },
-        { isActive: req.body.isActive, lastUpdated: new Date() },
-        { new: true }
-      );
+      const hotel = await hotelService.toggleHotelActive(req.params.id, req.body.isActive, req.userId);
       if (!hotel) {
         return res.status(404).json({ message: "Hotel not found" });
       }
@@ -217,10 +128,7 @@ router.put(
   async (req: Request, res: Response) => {
     try {
       // First, find the existing hotel
-      const existingHotel = await Hotel.findOne({
-        _id: req.params.hotelId,
-        userId: req.userId,
-      });
+      const existingHotel = await hotelService.getMyHotelById(req.params.hotelId, req.userId);
 
       if (!existingHotel) {
         return res.status(404).json({ message: "Hotel not found" });
@@ -259,24 +167,11 @@ router.put(
         smokingPolicy: req.body["policies.smokingPolicy"] || "",
       };
 
-      console.log("Update data:", updateData);
-
-      // Update the hotel
-      const updatedHotel = await Hotel.findByIdAndUpdate(
-        req.params.hotelId,
-        updateData,
-        { new: true }
-      );
-
-      if (!updatedHotel) {
-        return res.status(404).json({ message: "Hotel not found" });
-      }
-
       // Handle image uploads if any
-      const files = (req as any).files as any[];
+      const files = (req as any).files as Express.Multer.File[];
       if (files && files.length > 0) {
-        const updatedImageUrls = await uploadImages(files);
-        updatedHotel.imageUrls = [
+        const updatedImageUrls = await uploadService.uploadImages(files);
+        updateData.imageUrls = [
           ...updatedImageUrls,
           ...(req.body.imageUrls
             ? Array.isArray(req.body.imageUrls)
@@ -284,15 +179,18 @@ router.put(
               : [req.body.imageUrls]
             : []),
         ];
-        await updatedHotel.save();
+      }
+
+      // Update the hotel
+      const updatedHotel = await hotelService.updateHotel(req.params.hotelId, req.userId, updateData);
+
+      if (!updatedHotel) {
+        return res.status(404).json({ message: "Hotel not found" });
       }
 
       res.status(200).json(updatedHotel);
     } catch (error) {
       console.error("Error updating hotel:", error);
-      console.error("Request body:", req.body);
-      console.error("Hotel ID:", req.params.hotelId);
-      console.error("User ID:", req.userId);
       res.status(500).json({
         message: "Something went wrong",
         error: error instanceof Error ? error.message : "Unknown error",
@@ -300,23 +198,5 @@ router.put(
     }
   }
 );
-
-async function uploadImages(imageFiles: any[]) {
-  const uploadPromises = imageFiles.map(async (image) => {
-    const b64 = Buffer.from(image.buffer as Uint8Array).toString("base64");
-    let dataURI = "data:" + image.mimetype + ";base64," + b64;
-    const res = await cloudinary.v2.uploader.upload(dataURI, {
-      secure: true, // Force HTTPS URLs
-      transformation: [
-        { width: 800, height: 600, crop: "fill" },
-        { quality: "auto" },
-      ],
-    });
-    return res.url;
-  });
-
-  const imageUrls = await Promise.all(uploadPromises);
-  return imageUrls;
-}
 
 export default router;
