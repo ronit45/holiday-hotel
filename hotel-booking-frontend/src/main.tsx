@@ -25,14 +25,16 @@ export const queryClient = new QueryClient({
     },
   },
 });
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <AppContextProvider>
-        <SearchContextProvider>
-          <App />
-        </SearchContextProvider>
-      </AppContextProvider>
-    </QueryClientProvider>
-  </React.StrictMode>
-);
+if (import.meta.env.MODE !== "test") {
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <AppContextProvider>
+          <SearchContextProvider>
+            <App />
+          </SearchContextProvider>
+        </AppContextProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+}

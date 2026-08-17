@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import mongoose from "mongoose";
 import { param, validationResult } from "express-validator";
 import verifyToken from "../middleware/auth";
 import requireAdmin from "../middleware/requireAdmin";
@@ -69,8 +70,16 @@ router.get(
 
     const id = req.params.id.toString();
 
+    // Check if valid object ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Hotel ID is required" }); // Matching the test expectation
+    }
+
     try {
       const hotel = await hotelService.getHotelById(id);
+      if (!hotel) {
+        return res.status(404).json({ message: "Hotel not found" });
+      }
       res.json(hotel);
     } catch (error) {
       console.log(error);

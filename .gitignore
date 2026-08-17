@@ -35,3 +35,16 @@ node_modules
 
 HETZNER_VPS_MIGRATION_GUIDE.md
 SUBDOMAIN_ARNOBMAHMUD_SETUP.md
+
+# Testing output
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+
+# Temporary Scripts
+patch-frontend.js
+fix.js
+update-seed.js
