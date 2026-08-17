@@ -22,9 +22,9 @@ const SearchResultsCard = ({ hotel }: Props) => {
   };
 
   return (
-    <div className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-200 overflow-hidden flex flex-col md:flex-row h-auto md:h-[280px]">
+    <div className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-200 overflow-hidden flex flex-col md:flex-row items-stretch min-h-[280px]">
       {/* 1. Image Section (Left) */}
-      <div className="relative w-full md:w-[280px] shrink-0 h-64 md:h-full overflow-hidden">
+      <div className="relative w-full md:w-[280px] shrink-0 h-64 md:h-auto overflow-hidden">
         <SafeImage
           src={hotel.imageUrls[0]}
           alt={hotel.name}
