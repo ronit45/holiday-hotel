@@ -39,10 +39,10 @@ const SearchResultsCard = ({ hotel }: Props) => {
   };
 
   return (
-    <div className="group bg-white rounded-2xl shadow-soft hover:shadow-large transition-all duration-300 border border-gray-100 overflow-hidden h-auto xl:h-[500px] flex">
+    <div className="group bg-white rounded-2xl shadow-soft hover:shadow-large transition-all duration-300 border border-gray-100 overflow-hidden h-auto xl:h-80 flex">
       <div className="grid grid-cols-1 xl:grid-cols-[2fr_3fr] gap-0 w-full h-full">
         {/* Image Section */}
-        <div className="relative overflow-hidden h-64 xl:h-[500px]">
+        <div className="relative overflow-hidden h-64 xl:h-80">
           <SafeImage
             src={hotel.imageUrls[0]}
             alt={hotel.name}
@@ -135,8 +135,8 @@ const SearchResultsCard = ({ hotel }: Props) => {
           </div>
 
           {/* Facilities */}
-          <div className="mt-6">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">
+          <div className="mt-4">
+            <h4 className="text-sm font-medium text-gray-700 mb-2">
               Key Amenities
             </h4>
             <div className="flex flex-wrap gap-2">
@@ -157,10 +157,10 @@ const SearchResultsCard = ({ hotel }: Props) => {
           </div>
 
           {/* Action Button */}
-          <div className="mt-6 pt-4 border-t border-gray-100">
+          <div className="mt-4 pt-4 border-t border-gray-100">
             <Link
               to={`/detail/${hotel._id}`}
-              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-6 rounded-xl font-medium hover:from-primary-700 hover:to-primary-800 transform hover:scale-105 transition-all duration-200 text-center block"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2.5 px-6 rounded-xl font-medium hover:from-primary-700 hover:to-primary-800 transform hover:scale-[1.02] transition-all duration-200 text-center block"
             >
               View Details & Book
             </Link>
