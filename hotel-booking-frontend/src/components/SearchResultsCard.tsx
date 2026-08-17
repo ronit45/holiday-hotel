@@ -69,7 +69,7 @@ const SearchResultsCard = ({ hotel }: Props) => {
             <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
               <AiFillStar className="w-4 h-4 text-yellow-500" />
               <span className="text-sm font-medium text-gray-700">
-                {hotel.starRating}
+                {hotel.averageRating && hotel.averageRating > 0 ? hotel.averageRating.toFixed(1) : "New"}
               </span>
             </div>
           </div>
