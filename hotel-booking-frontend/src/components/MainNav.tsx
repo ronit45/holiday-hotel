@@ -6,6 +6,7 @@ import { getHotelsSearchUrl } from "../lib/nav-utils";
 import { prefetchBusinessInsightsQueries } from "../lib/invalidate-queries";
 import { queryClient } from "../main";
 import * as apiClient from "../api-client";
+import { useQuery } from "react-query";
 
 const NAV_AUTH_WIDTH = "min-w-[120px]";
 
@@ -14,6 +15,12 @@ const navLinkClass =
 
 const MainNav = () => {
   const { isLoggedIn } = useAppContext();
+
+  const { data: user } = useQuery(
+    "fetchCurrentUser",
+    apiClient.fetchCurrentUser,
+    { enabled: isLoggedIn }
+  );
 
   // Prefetch owner lists on hover so destination chrome + data arrive faster
   const prefetchMyHotels = () => {
@@ -40,13 +47,15 @@ const MainNav = () => {
       >
         My Bookings
       </Link>
-      <Link
-        to="/business-insights"
-        className={navLinkClass}
-        onMouseEnter={() => prefetchBusinessInsightsQueries(queryClient)}
-      >
-        Business Insights
-      </Link>
+      {isLoggedIn && user?.role === "admin" && (
+        <Link
+          to="/business-insights"
+          className={navLinkClass}
+          onMouseEnter={() => prefetchBusinessInsightsQueries(queryClient)}
+        >
+          Business Insights
+        </Link>
+      )}
       <Link
         to="/my-hotels"
         className={navLinkClass}

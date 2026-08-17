@@ -62,12 +62,15 @@ axiosInstance.interceptors.response.use(
     const { config } = error;
 
     // Log the error prominently in the browser console
-    console.error(
-      `🚨 [API ERROR] ${config?.method?.toUpperCase() || "UNKNOWN"} ${
-        config?.url || "UNKNOWN URL"
-      }`,
-      error.message
-    );
+    const isExpected401 = error.response?.status === 401 && (config?.url === "/api/auth/validate-token" || config?.url === "/api/users/me");
+    if (!isExpected401) {
+      console.error(
+        `🚨 [API ERROR] ${config?.method?.toUpperCase() || "UNKNOWN"} ${
+          config?.url || "UNKNOWN URL"
+        }`,
+        error.message
+      );
+    }
 
     // Handle 401 errors by clearing session
     if (error.response?.status === 401) {

@@ -6,6 +6,8 @@ import useAppContext from "../hooks/useAppContext";
 import { getHotelsSearchUrl } from "../lib/nav-utils";
 import { prefetchBusinessInsightsQueries } from "../lib/invalidate-queries";
 import { queryClient } from "../main";
+import { useQuery } from "react-query";
+import * as apiClient from "../api-client";
 
 const linkClass =
   "flex items-center gap-2 w-full py-3 text-sm font-normal text-gray-700 hover:text-primary-600 transition-colors";
@@ -13,6 +15,12 @@ const linkClass =
 /** Mobile nav — API Docs/Status live in UsernameMenu when logged in (not here). */
 const MobileNavLinks = () => {
   const { isLoggedIn } = useAppContext();
+
+  const { data: user } = useQuery(
+    "fetchCurrentUser",
+    apiClient.fetchCurrentUser,
+    { enabled: isLoggedIn }
+  );
 
   return (
     <div className="flex flex-col gap-1">
@@ -24,14 +32,16 @@ const MobileNavLinks = () => {
         <Calendar className="h-4 w-4" />
         My Bookings
       </Link>
-      <Link
-        to="/business-insights"
-        className={linkClass}
-        onMouseEnter={() => prefetchBusinessInsightsQueries(queryClient)}
-      >
-        <BarChart3 className="h-4 w-4" />
-        Business Insights
-      </Link>
+      {isLoggedIn && user?.role === "admin" && (
+        <Link
+          to="/business-insights"
+          className={linkClass}
+          onMouseEnter={() => prefetchBusinessInsightsQueries(queryClient)}
+        >
+          <BarChart3 className="h-4 w-4" />
+          Business Insights
+        </Link>
+      )}
       <Link to="/my-hotels" className={linkClass}>
         <Building2 className="h-4 w-4" />
         My Hotels

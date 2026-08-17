@@ -81,9 +81,11 @@ const App = () => {
         <Route
           path="/business-insights"
           element={
-            <Layout>
-              <AnalyticsDashboard />
-            </Layout>
+            <AdminRoute>
+              <Layout>
+                <AnalyticsDashboard />
+              </Layout>
+            </AdminRoute>
           }
         />
         <Route

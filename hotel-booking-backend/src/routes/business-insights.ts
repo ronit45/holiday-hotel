@@ -27,6 +27,28 @@ router.get("/dashboard/public", async (_req: Request, res: Response) => {
   }
 });
 
+// Public forecast data
+router.get("/forecast/public", async (_req: Request, res: Response) => {
+  try {
+    const data = await analyticsService.getForecastData();
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching public forecast data:", error);
+    res.status(500).json({ message: "Failed to fetch public forecast data" });
+  }
+});
+
+// Public system stats data
+router.get("/system-stats/public", async (_req: Request, res: Response) => {
+  try {
+    const data = await analyticsService.getSystemStatsData();
+    res.json(data);
+  } catch (error) {
+    console.error("Error fetching public system stats data:", error);
+    res.status(500).json({ message: "Failed to fetch public system stats data" });
+  }
+});
+
 // Admin-only comprehensive dashboard data
 router.get(
   "/dashboard",

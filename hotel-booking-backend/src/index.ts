@@ -35,6 +35,10 @@ connectDB();
 
 const app = express();
 
+// CORS (must be before rate limiters and auth)
+app.use(corsMiddleware);
+app.options("*", corsMiddleware);
+
 // Security middlewares
 app.use(helmetMiddleware);
 app.set("trust proxy", 1); // Trust proxy for production (Coolify/Vercel reverse proxy)
@@ -43,10 +47,6 @@ app.use("/api/hotels/*/bookings/payment-intent", paymentLimiter);
 
 app.use(compression());
 app.use(morgan("combined"));
-
-// CORS
-app.use(corsMiddleware);
-app.options("*", corsMiddleware);
 
 app.use(cookieParser());
 app.use(express.json());
