@@ -48,15 +48,15 @@ const SearchResultsCard = ({ hotel }: Props) => {
       {/* 2. Details Section (Middle) */}
       <div className="flex-1 p-5 flex flex-col min-w-0 border-b md:border-b-0 md:border-r border-gray-100">
         <div className="flex items-start justify-between gap-4 mb-2">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center flex-wrap gap-2 mb-1">
               <Link
                 to={`/detail/${hotel._id}`}
-                className="text-xl md:text-[22px] leading-tight font-black text-gray-900 hover:text-blue-600 transition-colors truncate"
+                className="text-xl md:text-[22px] leading-tight font-black text-gray-900 hover:text-blue-600 transition-colors truncate block"
               >
                 {hotel.name}
               </Link>
-              <div className="flex text-yellow-400">
+              <div className="flex text-yellow-400 shrink-0">
                 {Array.from({ length: hotel.starRating || 0 }).map((_, index) => (
                   <AiFillStar key={index} className="w-4 h-4" />
                 ))}
@@ -109,8 +109,8 @@ const SearchResultsCard = ({ hotel }: Props) => {
         </div>
         
         {/* Short Semantic Description */}
-        <div className="text-xs text-gray-600 mt-4 line-clamp-1 flex items-center bg-blue-50/50 rounded p-2.5 border border-blue-100">
-           <span className="italic truncate leading-relaxed">"{hotel.description}"</span>
+        <div className="text-xs text-gray-600 mt-4 flex items-center bg-blue-50/50 rounded p-2.5 border border-blue-100 min-w-0">
+           <span className="italic truncate leading-relaxed block w-full">"{hotel.description}"</span>
         </div>
       </div>
 
