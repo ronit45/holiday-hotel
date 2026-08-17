@@ -320,7 +320,7 @@ const MyHotels = () => {
                   {typeof hotel.averageRating === "number" &&
                   hotel.averageRating > 0
                     ? hotel.averageRating.toFixed(1)
-                    : hotel.starRating}
+                    : "New"}
                   {hotel.reviewCount != null && hotel.reviewCount > 0
                     ? ` (${hotel.reviewCount})`
                     : ""}

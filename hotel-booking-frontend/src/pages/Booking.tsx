@@ -141,7 +141,7 @@ const Booking = () => {
                 </p>
                 <div className="flex items-center gap-2 mb-3">
                   <Badge variant="outline" className="text-xs">
-                    {hotel.starRating} Stars
+                    {hotel.averageRating && hotel.averageRating > 0 ? `${hotel.averageRating.toFixed(1)} Avg Rating` : "No Reviews"}
                   </Badge>
                   <Badge variant="outline" className="text-xs">
                     £{hotel.pricePerNight}/night

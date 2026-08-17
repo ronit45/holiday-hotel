@@ -262,7 +262,7 @@ const MyBookings = () => {
                     className="w-24 h-24 rounded-xl object-cover object-center shadow-xl"
                   />
                   <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-xs font-medium px-2 py-1 rounded-full">
-                    {hotel.starRating}★
+                    {hotel.averageRating && hotel.averageRating > 0 ? hotel.averageRating.toFixed(1) : "New"}★
                   </div>
                 </div>
                 <div className="flex-1">

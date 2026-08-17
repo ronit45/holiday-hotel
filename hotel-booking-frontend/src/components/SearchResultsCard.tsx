@@ -82,8 +82,6 @@ const SearchResultsCard = ({ hotel }: Props) => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <span className="flex">
-                  </span>
                   <div className="flex flex-wrap gap-1">
                     {Array.isArray(hotel.type) ? (
                       hotel.type.slice(0, 4).map((type) => (
