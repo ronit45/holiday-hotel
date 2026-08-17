@@ -177,9 +177,9 @@ const Detail = () => {
           </div>
           <div className="text-center">
             <p className="text-lg font-medium text-gray-700">
-              {hotel.starRating}
+              {hotel.averageRating && hotel.averageRating > 0 ? hotel.averageRating.toFixed(1) : "N/A"}
             </p>
-            <p className="text-sm text-gray-600">Star Rating</p>
+            <p className="text-sm text-gray-600">Avg Rating</p>
           </div>
         </div>
 
