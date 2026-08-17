@@ -1,21 +1,7 @@
 import { Link } from "react-router-dom";
 import { HotelType } from "../../../shared/types";
-import { AiFillStar } from "react-icons/ai";
-import {
-  MapPin,
-  Building2,
-  Users,
-  Wifi,
-  Car,
-  Waves,
-  Dumbbell,
-  Sparkles,
-  UtensilsCrossed,
-  Coffee,
-  Plane,
-  Building,
-} from "lucide-react";
-import { Badge } from "./ui/badge";
+import { AiFillStar, AiOutlineHeart } from "react-icons/ai";
+import { MapPin, Check } from "lucide-react";
 import { SafeImage } from "./ui/safe-image";
 
 type Props = {
@@ -23,148 +9,153 @@ type Props = {
 };
 
 const SearchResultsCard = ({ hotel }: Props) => {
-  const getFacilityIcon = (facility: string) => {
-    const iconMap: { [key: string]: any } = {
-      "Free WiFi": Wifi,
-      "Free Parking": Car,
-      "Swimming Pool": Waves,
-      "Fitness Center": Dumbbell,
-      Spa: Sparkles,
-      Restaurant: UtensilsCrossed,
-      "Bar/Lounge": Coffee,
-      "Airport Shuttle": Plane,
-      "Business Center": Building,
-    };
-    return iconMap[facility] || Building2;
+  // Simulate original price (strike-through)
+  const originalPrice = Math.round(hotel.pricePerNight * 1.2);
+  const taxesAndFees = Math.round(hotel.pricePerNight * 0.18); // Simulate taxes
+  
+  // Convert numerical rating to text
+  const getRatingText = (rating: number) => {
+    if (rating >= 4.5) return "Excellent";
+    if (rating >= 4.0) return "Very Good";
+    if (rating >= 3.0) return "Good";
+    return "Average";
   };
 
   return (
-    <div className="group bg-white rounded-2xl shadow-soft hover:shadow-large transition-all duration-300 border border-gray-100 overflow-hidden h-auto xl:h-80 flex">
-      <div className="grid grid-cols-1 xl:grid-cols-[2fr_3fr] gap-0 w-full h-full">
-        {/* Image Section */}
-        <div className="relative overflow-hidden h-64 xl:h-80">
-          <SafeImage
-            src={hotel.imageUrls[0]}
-            alt={hotel.name}
-            fill
-            className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
-          />
+    <div className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-200 overflow-hidden flex flex-col md:flex-row h-auto md:h-[280px]">
+      {/* 1. Image Section (Left) */}
+      <div className="relative w-full md:w-[280px] shrink-0 h-64 md:h-full overflow-hidden">
+        <SafeImage
+          src={hotel.imageUrls[0]}
+          alt={hotel.name}
+          fill
+          className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+        />
+        
+        {/* Wishlist Heart Icon */}
+        <div className="absolute top-3 right-3 bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-full p-2 cursor-pointer transition-colors z-10">
+          <AiOutlineHeart className="w-5 h-5 text-white" />
+        </div>
 
-          {/* Overlay Badges */}
-          <div className="absolute top-4 left-4 flex flex-col space-y-2">
-            <div className="bg-primary-600 text-white rounded-full px-3 py-1">
-              <span className="text-sm font-medium">
-                £{hotel.pricePerNight}
-              </span>
-            </div>
-            {hotel.isFeatured && (
-              <div className="bg-yellow-500 text-white rounded-full px-3 py-1">
-                <span className="text-xs font-medium">Featured</span>
-              </div>
-            )}
+        {/* Photos Count Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-12">
+          <div className="flex items-center justify-center bg-black/50 backdrop-blur-md rounded-full py-1 px-3 w-max mx-auto text-white text-xs font-medium border border-white/20">
+            {hotel.imageUrls.length} Photos & Videos
           </div>
+        </div>
+      </div>
 
-          {/* Star Rating Badge */}
-          <div className="absolute top-4 right-4">
-            <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
-              <AiFillStar className="w-4 h-4 text-yellow-500" />
-              <span className="text-sm font-medium text-gray-700">
-                {hotel.averageRating && hotel.averageRating > 0 ? hotel.averageRating.toFixed(1) : "New"}
-              </span>
+      {/* 2. Details Section (Middle) */}
+      <div className="flex-1 p-5 flex flex-col min-w-0 border-b md:border-b-0 md:border-r border-gray-100">
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <div>
+            <div className="flex items-center flex-wrap gap-2 mb-1">
+              <Link
+                to={`/detail/${hotel._id}`}
+                className="text-xl md:text-[22px] leading-tight font-black text-gray-900 hover:text-blue-600 transition-colors truncate"
+              >
+                {hotel.name}
+              </Link>
+              <div className="flex text-yellow-400">
+                {Array.from({ length: hotel.starRating || 0 }).map((_, index) => (
+                  <AiFillStar key={index} className="w-4 h-4" />
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex items-center text-sm text-blue-600 font-bold mb-3">
+              <MapPin className="w-4 h-4 mr-1" />
+              <span>{hotel.city}, {hotel.country}</span>
             </div>
           </div>
         </div>
 
-        {/* Content Section */}
-        <div className="p-6 flex flex-col justify-between h-auto xl:h-full overflow-hidden">
-          <div className="space-y-4 overflow-y-auto xl:flex-1">
-            {/* Header */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="flex flex-wrap gap-1">
-                    {Array.isArray(hotel.type) ? (
-                      hotel.type.slice(0, 4).map((type) => (
-                        <Badge
-                          key={type}
-                          variant="default"
-                          className="text-xs px-2 py-1"
-                        >
-                          {type}
-                        </Badge>
-                      ))
-                    ) : (
-                      <Badge variant="default" className="text-xs px-2 py-1">
-                        {hotel.type}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
+        {/* Tags */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className="bg-gray-100 text-gray-700 text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wide">
+            Couple Friendly
+          </span>
+          {Array.isArray(hotel.type) ? (
+            hotel.type.slice(0, 2).map((type) => (
+              <span key={type} className="bg-gray-100 text-gray-700 text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wide">
+                {type}
+              </span>
+            ))
+          ) : (
+            hotel.type && (
+              <span className="bg-gray-100 text-gray-700 text-[11px] px-2 py-1 rounded font-bold uppercase tracking-wide">
+                {hotel.type}
+              </span>
+            )
+          )}
+        </div>
 
-              <Link
-                to={`/detail/${hotel._id}`}
-                className="text-lg md:text-2xl font-medium text-gray-700 hover:text-primary-600 transition-colors cursor-pointer"
-              >
-                {hotel.name}
-              </Link>
-
-              <div className="flex items-center text-gray-600">
-                <MapPin className="w-4 h-4 mr-1" />
-                <span className="text-sm">
-                  {hotel.city}, {hotel.country}
-                </span>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="text-gray-600 leading-relaxed line-clamp-3">
-              {hotel.description}
-            </div>
-
-            {/* Hotel Stats */}
-            <div className="flex items-center space-x-6 text-sm text-gray-600">
-              {hotel.totalBookings && (
-                <div className="flex items-center space-x-1">
-                  <Users className="w-4 h-4" />
-                  <span>{hotel.totalBookings} bookings</span>
-                </div>
-              )}
-
-            </div>
+        {/* Inclusions (Derived from facilities for demo) */}
+        <div className="space-y-1.5 mt-auto">
+          <div className="flex items-start text-[13px] font-medium text-emerald-600">
+            <Check className="w-4 h-4 mr-2 shrink-0 mt-0.5" />
+            <span>Free Cancellation till 24 hrs before check in</span>
           </div>
-
-          {/* Facilities */}
-          <div className="mt-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">
-              Key Amenities
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {hotel.facilities.slice(0, 6).map((facility) => {
-                const IconComponent = getFacilityIcon(facility);
-                return (
-                  <Badge
-                    key={facility}
-                    variant="outline"
-                    className="flex items-center space-x-1.5 px-3 py-1.5 text-xs"
-                  >
-                    <IconComponent className="w-3 h-3 text-primary-600" />
-                    <span>{facility}</span>
-                  </Badge>
-                );
-              })}
-            </div>
+          <div className="flex items-start text-[13px] font-medium text-emerald-600">
+            <Check className="w-4 h-4 mr-2 shrink-0 mt-0.5" />
+            <span>Book with £0 Payment</span>
           </div>
+          {hotel.facilities && hotel.facilities.slice(0, 1).map(fac => (
+            <div key={fac} className="flex items-start text-[13px] font-medium text-emerald-600">
+              <Check className="w-4 h-4 mr-2 shrink-0 mt-0.5" />
+              <span>Includes {fac}</span>
+            </div>
+          ))}
+        </div>
+        
+        {/* Short Semantic Description */}
+        <div className="text-xs text-gray-600 mt-4 line-clamp-1 flex items-center bg-blue-50/50 rounded p-2.5 border border-blue-100">
+           <span className="italic truncate leading-relaxed">"{hotel.description}"</span>
+        </div>
+      </div>
 
-          {/* Action Button */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <Link
+      {/* 3. Pricing Section (Right) */}
+      <div className="w-full md:w-[260px] shrink-0 p-5 flex flex-col justify-between bg-[#fcfcfc]">
+        {/* Rating Block */}
+        <div className="flex justify-end mb-4">
+          <div className="text-right flex flex-col items-end">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-bold text-[#001b94] text-[15px]">
+                {hotel.averageRating ? getRatingText(hotel.averageRating) : "New"}
+              </span>
+              <div className="bg-[#001b94] text-white font-bold text-sm px-2 py-1 rounded-md flex items-center justify-center min-w-[32px]">
+                {hotel.averageRating ? hotel.averageRating.toFixed(1) : "-"}
+              </div>
+            </div>
+            {hotel.reviewCount ? (
+              <span className="text-[11px] font-bold text-gray-500">
+                ({hotel.reviewCount} Ratings)
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Price Block */}
+        <div className="mt-auto text-right flex flex-col justify-end">
+           <div className="text-gray-400 text-[13px] font-medium line-through mb-1">
+              £ {originalPrice}
+           </div>
+           <div className="text-[28px] font-black text-gray-900 mb-0.5 leading-none tracking-tight">
+             £ {hotel.pricePerNight}
+           </div>
+           <div className="text-[12px] text-gray-500 mb-1">
+             + £ {taxesAndFees} taxes & fees
+           </div>
+           <div className="text-[11px] font-medium text-gray-500 mb-4">
+             Per Night
+           </div>
+
+           <Link
               to={`/detail/${hotel._id}`}
-              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2.5 px-6 rounded-xl font-medium hover:from-primary-700 hover:to-primary-800 transform hover:scale-[1.02] transition-all duration-200 text-center block"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold py-2.5 px-4 rounded-full hover:from-blue-700 hover:to-blue-800 transition-all text-center text-sm shadow-sm hover:shadow-md"
             >
-              View Details & Book
-            </Link>
-          </div>
+              Login to Book Now
+           </Link>
         </div>
       </div>
     </div>
