@@ -64,6 +64,15 @@ const SearchResultsCard = ({ hotel }: Props) => {
             )}
           </div>
 
+          {/* Star Rating Badge */}
+          <div className="absolute top-4 right-4">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
+              <AiFillStar className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm font-medium text-gray-700">
+                {hotel.starRating}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Content Section */}
@@ -74,9 +83,6 @@ const SearchResultsCard = ({ hotel }: Props) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className="flex">
-                    {Array.from({ length: hotel.starRating }).map((_, i) => (
-                      <AiFillStar key={i} className="w-4 h-4 text-yellow-400" />
-                    ))}
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {Array.isArray(hotel.type) ? (
@@ -126,14 +132,7 @@ const SearchResultsCard = ({ hotel }: Props) => {
                   <span>{hotel.totalBookings} bookings</span>
                 </div>
               )}
-              <div className="flex items-center space-x-1">
-                <AiFillStar className="w-4 h-4 text-yellow-400" />
-                <span>
-                  {hotel.averageRating && hotel.averageRating > 0
-                    ? `${hotel.averageRating.toFixed(1)} avg rating`
-                    : "No ratings yet"}
-                </span>
-              </div>
+
             </div>
           </div>
 

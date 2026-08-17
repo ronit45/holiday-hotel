@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { HotelType } from "../../../shared/types";
-import { MapPin, Users } from "lucide-react";
+import { MapPin, Star, Users } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { SafeImage } from "./ui/safe-image";
 
@@ -26,6 +26,15 @@ const LatestDestinationCard = ({ hotel }: Props) => {
         {/* Overlay Gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
+        {/* Hotel Stats Badge */}
+        <div className="absolute top-4 right-4">
+          <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
+            <Star className="w-4 h-4 text-yellow-500 fill-current" />
+            <span className="text-sm font-medium text-gray-700">
+              {hotel.starRating}
+            </span>
+          </div>
+        </div>
 
         {/* Price Badge */}
         <div className="absolute top-4 left-4">
