@@ -70,11 +70,7 @@ const Detail = () => {
   return (
     <div className="space-y-6">
       <div>
-        <span className="flex">
-          {Array.from({ length: hotel.starRating }).map((_, i) => (
-            <AiFillStar key={i} className="fill-yellow-400" />
-          ))}
-        </span>
+
         <h1 className="text-sm md:text-lg font-medium">{hotel.name}</h1>
 
         {/* Location and Contact Info */}
@@ -119,13 +115,7 @@ const Detail = () => {
                   £{hotel.totalRevenue.toLocaleString()} revenue
                 </Badge>
               )}
-              {/* Rating Badge */}
-              <Badge variant="outline" className="text-gray-600">
-                {hotel.averageRating && hotel.averageRating > 0
-                  ? `${hotel.averageRating.toFixed(1)} avg rating${hotel.reviewCount ? ` (${hotel.reviewCount})` : ""
-                  }`
-                  : "No guest reviews yet"}
-              </Badge>
+
               {hotel.isFeatured && (
                 <Badge className="bg-yellow-100 text-yellow-800">Featured</Badge>
               )}
