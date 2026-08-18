@@ -176,16 +176,20 @@ router.put(
 
       // Handle image uploads if any
       const files = (req as any).files as Express.Multer.File[];
+      const existingImageUrls = req.body.imageUrls
+        ? Array.isArray(req.body.imageUrls)
+          ? req.body.imageUrls
+          : [req.body.imageUrls]
+        : [];
+        
       if (files && files.length > 0) {
         const updatedImageUrls = await uploadService.uploadImages(files);
         updateData.imageUrls = [
           ...updatedImageUrls,
-          ...(req.body.imageUrls
-            ? Array.isArray(req.body.imageUrls)
-              ? req.body.imageUrls
-              : [req.body.imageUrls]
-            : []),
+          ...existingImageUrls,
         ];
+      } else {
+        updateData.imageUrls = existingImageUrls;
       }
 
       // Update the hotel

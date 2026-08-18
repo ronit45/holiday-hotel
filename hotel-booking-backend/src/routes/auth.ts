@@ -8,14 +8,7 @@ import { config } from "../config/env";
 
 const router = express.Router();
 
-/**
- * @swagger
- * /api/auth/google:
- *   get:
- *     summary: Initiate Google OAuth
- *     description: Redirects user to Google sign-in
- *     tags: [Authentication]
- */
+
 router.get("/google", (req: Request, res: Response) => {
   if (!config.google.clientId) {
     return res.status(500).json({ message: "Google OAuth not configured" });
@@ -27,14 +20,7 @@ router.get("/google", (req: Request, res: Response) => {
   res.redirect(url);
 });
 
-/**
- * @swagger
- * /api/auth/callback/google:
- *   get:
- *     summary: Google OAuth callback
- *     description: Handles redirect from Google, creates/logs in user
- *     tags: [Authentication]
- */
+
 router.get("/callback/google", async (req: Request, res: Response) => {
   const { code, error } = req.query;
 
@@ -67,47 +53,7 @@ router.get("/callback/google", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @swagger
- * /api/auth/login:
- *   post:
- *     summary: User login
- *     description: Authenticate user with email and password
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 description: User's email address
- *               password:
- *                 type: string
- *                 minLength: 6
- *                 description: User's password
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 userId:
- *                   type: string
- *                   description: User ID
- *       400:
- *         description: Invalid credentials or validation error
- *       500:
- *         description: Server error
- */
+
 router.post(
   "/login",
   [
@@ -148,44 +94,12 @@ router.post(
   }
 );
 
-/**
- * @swagger
- * /api/auth/validate-token:
- *   get:
- *     summary: Validate authentication token
- *     description: Validate the current user's authentication token
- *     tags: [Authentication]
- *     security:
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: Token is valid
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 userId:
- *                   type: string
- *                   description: User ID
- *       401:
- *         description: Token is invalid or expired
- */
+
 router.get("/validate-token", verifyToken, (req: Request, res: Response) => {
   res.status(200).send({ userId: req.userId });
 });
 
-/**
- * @swagger
- * /api/auth/logout:
- *   post:
- *     summary: User logout
- *     description: Logout user by clearing authentication cookie
- *     tags: [Authentication]
- *     responses:
- *       200:
- *         description: Logout successful
- */
+
 router.post("/logout", (req: Request, res: Response) => {
   res.cookie("session_id", "", {
     ...clearAuthCookieOptions(),

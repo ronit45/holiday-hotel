@@ -26,7 +26,7 @@ router.post(
       });
     }
 
-    if (process.env.AI_ASSIST_ENABLED !== "true") {
+    if (process.env.AI_ASSIST_ENABLED?.trim() !== "true") {
       return res.status(503).json({
         message: "AI assist is disabled (set AI_ASSIST_ENABLED=true)",
       });

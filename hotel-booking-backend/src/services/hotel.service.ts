@@ -56,9 +56,16 @@ class HotelService {
     if (queryParams.stars) {
       const starRatings = Array.isArray(queryParams.stars)
         ? queryParams.stars.map((star: string) => parseInt(star))
-        : parseInt(queryParams.stars as string);
+        : [parseInt(queryParams.stars as string)];
 
-      constructedQuery.starRating = { $in: starRatings };
+      const ratingConditions = starRatings.map(star => ({
+        averageRating: { $gte: star - 0.5, $lt: star + 0.5 }
+      }));
+
+      if (!constructedQuery.$and) {
+        constructedQuery.$and = [];
+      }
+      constructedQuery.$and.push({ $or: ratingConditions });
     }
 
     if (queryParams.maxPrice) {
@@ -76,7 +83,7 @@ class HotelService {
     let sortOptions = {};
     switch (sortOption) {
       case "starRating":
-        sortOptions = { starRating: -1 };
+        sortOptions = { averageRating: -1 };
         break;
       case "pricePerNightAsc":
         sortOptions = { pricePerNight: 1 };

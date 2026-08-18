@@ -21,21 +21,25 @@ class BookingService {
       createdAt: -1,
     });
 
-    const results = await Promise.all(
-      userBookings.map(async (booking) => {
+    const groupedResults: Record<string, any> = {};
+
+    for (const booking of userBookings) {
+      const hotelIdStr = booking.hotelId.toString();
+      if (!groupedResults[hotelIdStr]) {
         const hotel = await Hotel.findById(booking.hotelId);
-        if (!hotel) {
-          return null;
+        if (hotel) {
+          groupedResults[hotelIdStr] = {
+            ...hotel.toObject(),
+            bookings: [],
+          };
         }
+      }
+      if (groupedResults[hotelIdStr]) {
+        groupedResults[hotelIdStr].bookings.push(booking.toObject());
+      }
+    }
 
-        return {
-          ...hotel.toObject(),
-          bookings: [booking.toObject()],
-        };
-      })
-    );
-
-    return results.filter((result) => result !== null);
+    return Object.values(groupedResults);
   }
 
   async getBookingById(id: string) {

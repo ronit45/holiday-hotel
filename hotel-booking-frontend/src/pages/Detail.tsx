@@ -23,7 +23,7 @@ const Detail = () => {
   const { hotelId } = useParams();
 
   const { data: hotel, isLoading: isHotelLoading } = useQueryWithLoading(
-    "fetchHotelById",
+    ["fetchHotelById", hotelId],
     () => apiClient.fetchHotelById(hotelId || ""),
     {
       enabled: !!hotelId,

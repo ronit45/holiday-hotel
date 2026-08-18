@@ -46,7 +46,7 @@ const Booking = () => {
   );
 
   const { data: hotel, isLoading: isLoadingHotel } = useQuery(
-    "fetchHotelByID",
+    ["fetchHotelByID", hotelId],
     () => apiClient.fetchHotelById(hotelId as string),
     {
       enabled: !!hotelId,

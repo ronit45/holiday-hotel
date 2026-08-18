@@ -12,7 +12,7 @@ const EditHotel = () => {
   const queryClient = useQueryClient();
 
   const { data: hotel } = useQuery(
-    "fetchMyHotelById",
+    ["fetchMyHotelById", hotelId],
     () => apiClient.fetchMyHotelById(hotelId || ""),
     {
       enabled: !!hotelId,
